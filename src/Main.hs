@@ -35,12 +35,20 @@ across =
       let len = (fromIntegral numLong-1) * horsep
       in  [hrule len, hrule len # lc grey]
 
+dots :: Diagram PS.B
+dots =
+   foldr1 atop $
+   map
+      (\(x,y) -> translate (r2 (x*horsep, -y*versep)) $ fc blue $ circle 0.05)
+      [(0,0), (1,1), (3,2), (3,4)]
+
 diag :: Diagram PS.B
 diag =
+   dots `atop`
    alignTL long `atop` alignTL across `atop`
-   translateY 0.1 labels `atop`
+   translateY 0.15 labels `atop`
    (translateX (-0.1) $ alignBL $ lc white $
-    rect (fromIntegral numLong * horsep) horsep)
+    rect (fromIntegral numLong * horsep) (1.5*horsep))
 
 main :: IO ()
 main = PS.mainWith diag
