@@ -17,9 +17,11 @@ import Diagrams.Prelude
 import Data.Tuple.HT (swap, )
 
 
-numLong, numAcross :: Int
+timeStep :: Double
+timeStep = 0.1
+
+numLong :: Int
 numLong = 15
-numAcross = 30
 
 horsep, versep :: Double
 horsep = 0.2
@@ -36,24 +38,25 @@ labels =
    map (\str -> text str # fontSizeL 0.2) $
    map (:[]) "CDEFGABCDEFGABC"
 
-long :: Diagram PS.B
-long =
+long :: Int -> Diagram PS.B
+long numIntervals =
    hcat' (with & sep .~ horsep) $
    map (\(wid, col) ->
-          vrule (verlen (numAcross-1)) # lw wid # lc col) $
+          vrule (verlen numIntervals) # lw wid # lc col) $
       let l = (thin, black); h = (thick, darkgreen)
       in  [l, l, h, l, h, l, h, l, h, l, h, l, l, l, l]
 
-across :: Diagram PS.B
-across =
+across :: Int -> Diagram PS.B
+across numIntervals =
    vcat' (with & sep .~ versep) $
-   take numAcross $ cycle $
+   take (succ numIntervals) $ cycle $
       let len = horlen (numLong-1)
       in  [hrule len, hrule len # lc grey]
 
-grid :: Diagram PS.B
-grid =
-   alignTL long `atop` alignTL across `atop`
+grid :: Int -> Diagram PS.B
+grid numIntervals =
+   alignTL (long numIntervals) `atop`
+   alignTL (across numIntervals) `atop`
    translateY 0.15 labels `atop`
    (translateX (-0.1) $ alignBL $ lc white $
     rect (horlen numLong) (1.5*horsep))
@@ -70,7 +73,7 @@ dots poss =
 layoutDots :: MidiFile.T -> [(Int, Double)]
 layoutDots (MidiFile.Cons typ division tracks) =
    map swap $ AbsEventList.toPairList $
-   AbsEventList.mapTime ((/0.1) . realToFrac) $
+   AbsEventList.mapTime ((/timeStep) . realToFrac) $
    AbsEventList.mapMaybe
       (\fev -> do
          FileEvent.MIDIEvent ev <- Just fev
@@ -83,7 +86,8 @@ layoutDots (MidiFile.Cons typ division tracks) =
 diag :: FilePath -> IO (Diagram PS.B)
 diag path = do
    midi <- Load.fromFile path
-   return $ dots (layoutDots midi) `atop` grid
+   let cloud = layoutDots midi
+   return $ dots cloud `atop` (grid $ ceiling $ maximum $ map snd cloud)
 
 main :: IO ()
 main = PS.mainWith diag
