@@ -14,6 +14,7 @@ import qualified Data.EventList.Relative.TimeBody as EventList
 import qualified Diagrams.Backend.Postscript.CmdLine as PS
 import Diagrams.Prelude
 
+import Data.Foldable (foldMap, )
 import Data.Tuple.HT (swap, )
 
 
@@ -70,8 +71,7 @@ grid numIntervals =
 
 dots :: [(Int, Double)] -> Diag
 dots poss =
-   foldr1 atop $
-   flip map poss $
+   flip foldMap poss $
    \(x,y) ->
       translate (r2 (horlen x, - versep * y)) $
       normalLW $ fc blue $ circle (horsep/4)
