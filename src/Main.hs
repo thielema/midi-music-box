@@ -17,6 +17,8 @@ import Diagrams.Prelude
 import Data.Tuple.HT (swap, )
 
 
+type Diag = Diagram PS.B
+
 timeStep :: Double
 timeStep = 0.1
 
@@ -32,13 +34,13 @@ horlen n = fromIntegral n * horsep
 verlen n = fromIntegral n * versep
 
 
-labels :: Diagram PS.B
+labels :: Diag
 labels =
    hcat' (with & sep .~ horsep) $
    map (\str -> text str # fontSizeL 0.2) $
    map (:[]) "CDEFGABCDEFGABC"
 
-long :: Int -> Diagram PS.B
+long :: Int -> Diag
 long numIntervals =
    hcat' (with & sep .~ horsep) $
    map (\(wid, col) ->
@@ -46,14 +48,14 @@ long numIntervals =
       let l = (thin, black); h = (thick, darkgreen)
       in  [l, l, h, l, h, l, h, l, h, l, h, l, l, l, l]
 
-across :: Int -> Diagram PS.B
+across :: Int -> Diag
 across numIntervals =
    vcat' (with & sep .~ versep) $
    take (succ numIntervals) $ cycle $
       let len = horlen (numLong-1)
       in  [hrule len, hrule len # lc grey]
 
-grid :: Int -> Diagram PS.B
+grid :: Int -> Diag
 grid numIntervals =
    alignTL (long numIntervals) `atop`
    alignTL (across numIntervals) `atop`
@@ -62,7 +64,7 @@ grid numIntervals =
     rect (horlen numLong) (1.5*horsep))
 
 
-dots :: [(Int, Double)] -> Diagram PS.B
+dots :: [(Int, Double)] -> Diag
 dots poss =
    foldr1 atop $
    flip map poss $
@@ -83,7 +85,7 @@ layoutDots (MidiFile.Cons typ division tracks) =
    MidiFile.mergeTracks typ $
    map (MidiFile.secondsFromTicks division) tracks
 
-diag :: FilePath -> IO (Diagram PS.B)
+diag :: FilePath -> IO Diag
 diag path = do
    midi <- Load.fromFile path
    let cloud = layoutDots midi
