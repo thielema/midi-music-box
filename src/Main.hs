@@ -31,9 +31,6 @@ import Data.Tuple.HT (mapSnd, )
 
 type Diag = Diagram PS.B
 
-timeStep :: Double
-timeStep = 0.1
-
 numLong :: Int
 numLong = 15
 
@@ -99,8 +96,9 @@ noteMap =
           (NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones)
           semitones
 
-layoutDots :: VoiceMsg.Pitch -> MidiFile.T -> [((Int, Double), Bool)]
-layoutDots zeroKey (MidiFile.Cons typ division tracks) =
+layoutDots ::
+   TimeStep -> VoiceMsg.Pitch -> MidiFile.T -> [((Int, Double), Bool)]
+layoutDots (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
    map (\(t,(p,whole)) -> ((p,t), whole)) $
    AbsEventList.toPairList $
    AbsEventList.mapTime ((/timeStep) . realToFrac) $
@@ -126,16 +124,27 @@ instance Cmd.Parseable ZeroKey where
           OP.help "MIDI key for the lowest note line")
 
 
+newtype TimeStep = TimeStep Double
+
+instance Cmd.Parseable TimeStep where
+   parser =
+      OP.option (TimeStep <$> OP.auto)
+         (OP.long "timestep" OP.<>
+          OP.metavar "SECONDS" OP.<>
+          OP.value (TimeStep 0.1) OP.<>
+          OP.help "time step between lines")
+
+
 newtype Input = Input FilePath
 
 instance Cmd.Parseable Input where
    parser = OP.argument (Input <$> OP.str) (OP.metavar "INPUT")
 
 
-diag :: ZeroKey -> Input -> IO Diag
-diag (ZeroKey zeroKey) (Input path) = do
+diag :: TimeStep -> ZeroKey -> Input -> IO Diag
+diag timeStep (ZeroKey zeroKey) (Input path) = do
    midi <- Load.fromFile path
-   let cloud = layoutDots (VoiceMsg.toPitch zeroKey) midi
+   let cloud = layoutDots timeStep (VoiceMsg.toPitch zeroKey) midi
        (tooSmall, (fitting, tooBig)) =
          mapSnd (partition ((<=numLong) . fst . fst)) $
          partition ((<0) . fst . fst) cloud
