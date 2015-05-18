@@ -70,9 +70,9 @@ across numIntervals =
 
 grid :: Int -> Diag
 grid numIntervals =
-   alignTL (long numIntervals) `atop`
-   alignTL (across numIntervals) `atop`
-   translateY (0.5*versep) labels `atop`
+   alignTL (long numIntervals) <>
+   alignTL (across numIntervals) <>
+   translateY (0.5*versep) labels <>
    (translateX (-0.5*horsep) $ alignBL $ lc white $
     rect (horlen numLong) (1.5*horsep))
 
@@ -122,7 +122,7 @@ diag path = do
       hPrintf IO.stderr "Warning: %i notes are too low\n" $ length tooSmall
    when (not $ null tooBig) $
       hPrintf IO.stderr "Warning: %i notes are too high\n" $ length tooBig
-   return $ dots fitting `atop` (grid $ ceiling $ maximum $ map (snd . fst) cloud)
+   return $ dots fitting <> (grid $ ceiling $ maximum $ map (snd . fst) cloud)
 
 main :: IO ()
 main = PS.mainWith diag
