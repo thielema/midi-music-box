@@ -14,8 +14,13 @@ import qualified Data.EventList.Relative.TimeBody as EventList
 import qualified Diagrams.Backend.Postscript.CmdLine as PS
 import Diagrams.Prelude
 
+import qualified System.IO as IO
+import Text.Printf (hPrintf, )
+
+import Control.Monad (when, )
 import Data.Foldable (foldMap, )
-import Data.Tuple.HT (swap, )
+import Data.List.HT (partition, )
+import Data.Tuple.HT (swap, mapSnd, )
 
 
 type Diag = Diagram PS.B
@@ -93,7 +98,13 @@ diag :: FilePath -> IO Diag
 diag path = do
    midi <- Load.fromFile path
    let cloud = layoutDots midi
-   return $ dots cloud `atop` (grid $ ceiling $ maximum $ map snd cloud)
+       (tooSmall, (fitting, tooBig)) =
+         mapSnd (partition ((<=numLong) . fst)) $ partition ((<0) . fst) cloud
+   when (not $ null tooSmall) $
+      hPrintf IO.stderr "Warning: %i notes are too low\n" $ length tooSmall
+   when (not $ null tooBig) $
+      hPrintf IO.stderr "Warning: %i notes are too high\n" $ length tooBig
+   return $ dots fitting `atop` (grid $ ceiling $ maximum $ map snd cloud)
 
 main :: IO ()
 main = PS.mainWith diag
