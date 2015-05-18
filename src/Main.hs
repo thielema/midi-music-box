@@ -12,7 +12,10 @@ import qualified Data.EventList.Absolute.TimeBody as AbsEventList
 import qualified Data.EventList.Relative.TimeBody as EventList
 
 import qualified Diagrams.Backend.Postscript.CmdLine as PS
+import qualified Diagrams.Backend.CmdLine as Cmd
 import Diagrams.Prelude
+
+import qualified Options.Applicative as OP
 
 import qualified System.IO as IO
 import Text.Printf (hPrintf, )
@@ -96,8 +99,8 @@ noteMap =
           (NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones)
           semitones
 
-layoutDots :: MidiFile.T -> [((Int, Double), Bool)]
-layoutDots (MidiFile.Cons typ division tracks) =
+layoutDots :: VoiceMsg.Pitch -> MidiFile.T -> [((Int, Double), Bool)]
+layoutDots zeroKey (MidiFile.Cons typ division tracks) =
    map (\(t,(p,whole)) -> ((p,t), whole)) $
    AbsEventList.toPairList $
    AbsEventList.mapTime ((/timeStep) . realToFrac) $
@@ -106,15 +109,25 @@ layoutDots (MidiFile.Cons typ division tracks) =
          FileEvent.MIDIEvent ev <- Just fev
          (_c, (_v, p, True)) <- Query.noteExplicitOff ev
          flip Map.lookup noteMap $
-            VoiceMsg.subtractPitch (VoiceMsg.toPitch 60) p) $
+            VoiceMsg.subtractPitch zeroKey p) $
    EventList.toAbsoluteEventList 0 $
    MidiFile.mergeTracks typ $
    map (MidiFile.secondsFromTicks division) tracks
 
-diag :: FilePath -> IO Diag
-diag path = do
+newtype ZeroKey = ZeroKey Int
+
+instance Cmd.Parseable ZeroKey where
+   parser =
+      OP.option (ZeroKey <$> OP.auto)
+         (OP.long "zerokey" OP.<>
+          OP.metavar "INT" OP.<>
+          OP.value (ZeroKey 60) OP.<>
+          OP.help "MIDI key for the lowest note line")
+
+diag :: ZeroKey -> FilePath -> IO Diag
+diag (ZeroKey zeroKey) path = do
    midi <- Load.fromFile path
-   let cloud = layoutDots midi
+   let cloud = layoutDots (VoiceMsg.toPitch zeroKey) midi
        (tooSmall, (fitting, tooBig)) =
          mapSnd (partition ((<=numLong) . fst . fst)) $
          partition ((<0) . fst . fst) cloud
