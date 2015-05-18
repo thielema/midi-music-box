@@ -114,6 +114,7 @@ layoutDots zeroKey (MidiFile.Cons typ division tracks) =
    MidiFile.mergeTracks typ $
    map (MidiFile.secondsFromTicks division) tracks
 
+
 newtype ZeroKey = ZeroKey Int
 
 instance Cmd.Parseable ZeroKey where
@@ -124,8 +125,15 @@ instance Cmd.Parseable ZeroKey where
           OP.value (ZeroKey 60) OP.<>
           OP.help "MIDI key for the lowest note line")
 
-diag :: ZeroKey -> FilePath -> IO Diag
-diag (ZeroKey zeroKey) path = do
+
+newtype Input = Input FilePath
+
+instance Cmd.Parseable Input where
+   parser = OP.argument (Input <$> OP.str) (OP.metavar "INPUT")
+
+
+diag :: ZeroKey -> Input -> IO Diag
+diag (ZeroKey zeroKey) (Input path) = do
    midi <- Load.fromFile path
    let cloud = layoutDots (VoiceMsg.toPitch zeroKey) midi
        (tooSmall, (fitting, tooBig)) =
