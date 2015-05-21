@@ -34,17 +34,20 @@ type Diag = Diagram PS.B
 numLong :: Int
 numLong = 15
 
+globalScale :: Double
+globalScale = 1/7
+
 horsep, versep :: Double
-horsep = 40
-versep = 60
+horsep = 40*globalScale
+versep = 60*globalScale
 
 horlen, verlen :: Int -> Double
 horlen n = fromIntegral n * horsep
 verlen n = fromIntegral n * versep
 
 normalLW, thickLW :: Diag -> Diag
-normalLW = lwO 5
-thickLW = lwO 8
+normalLW = lwO (5*globalScale)
+thickLW = lwO (8*globalScale)
 
 
 labels :: Diag
