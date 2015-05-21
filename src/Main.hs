@@ -76,8 +76,8 @@ grid numIntervals =
    alignTL (long numIntervals) <>
    alignTL (across numIntervals) <>
    translateY (0.5*versep) labels <>
-   (translateX (-0.5*horsep) $ alignBL $ lc white $
-    rect (horlen numLong) (1.5*horsep))
+   (translateX (- horlen 3) $ translateY (verlen 2) $ alignTL $
+    lc white $ rect (horlen (numLong+5)) (verlen (numIntervals+4)))
 
 
 dots :: [((Int, Double), Bool)] -> Diag
