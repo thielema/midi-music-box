@@ -41,6 +41,9 @@ horsep, versep :: Double
 horsep = 40*globalScale
 versep = 60*globalScale
 
+hormargin :: Double
+hormargin = 65*globalScale
+
 horlen, verlen :: Int -> Double
 horlen n = fromIntegral n * horsep
 verlen n = fromIntegral n * versep
@@ -75,6 +78,10 @@ grid :: Int -> Diag
 grid numIntervals =
    alignTL (long numIntervals) <>
    alignTL (across numIntervals) <>
+   translateX (-hormargin)
+      (alignTL (vrule (verlen numIntervals) # normalLW # lc grey)) <>
+   translateX (horlen (numLong-1) + hormargin)
+      (alignTL (vrule (verlen numIntervals) # normalLW # lc grey)) <>
    translateY (0.5*versep) labels <>
    (translateX (- horlen 3) $ translateY (verlen 2) $ alignTL $
     lc white $ rect (horlen (numLong+5)) (verlen (numIntervals+4)))
