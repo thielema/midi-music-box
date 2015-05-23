@@ -24,8 +24,7 @@ import Control.Monad (when, )
 
 import qualified Data.Map as Map; import Data.Map (Map, )
 import qualified Data.NonEmpty as NonEmpty
-import Data.Foldable (foldMap, )
-import Data.List.HT (partition, )
+import Data.Foldable (foldMap, fold, )
 import Data.Tuple.HT (mapSnd, )
 
 
@@ -88,15 +87,19 @@ grid numIntervals =
     rect (horlen (numLong-1) + 2*horextramargin) (verlen (numIntervals+4)))
 
 
-dots :: [((Int, Double), Bool)] -> Diag
+dots :: [(DotType, (Int, Double))] -> Diag
 dots poss =
    flip foldMap poss $
-   \((x,y),whole) ->
+   \(typ, (x,y)) ->
       translate (r2 (horlen x, - versep * y)) $
-      if whole
-        then normalLW $ fc blue $ circle (horsep*0.25)
-        else (fontSizeL horsep $ text "#") <>
-             (lwO 0 $ fc yellow $ circle (horsep*0.4))
+      let warning txt =
+            (fontSizeL horsep $ text txt) <>
+            (lwO 0 $ fc yellow $ circle (horsep*0.4))
+      in  case typ of
+            Valid -> normalLW $ fc blue $ circle (horsep*0.25)
+            Semitone -> warning "#"
+            TooLow -> warning "!"
+            TooHigh -> warning "!"
 
 noteMap :: Map Int (Int, Bool)
 noteMap =
@@ -107,18 +110,30 @@ noteMap =
           (NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones)
           semitones
 
+
+data DotType = Valid | Semitone | TooLow | TooHigh
+   deriving (Eq, Ord)
+
 layoutDots ::
-   TimeStep -> VoiceMsg.Pitch -> MidiFile.T -> [((Int, Double), Bool)]
+   TimeStep -> VoiceMsg.Pitch -> MidiFile.T -> [(DotType, (Int, Double))]
 layoutDots (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
-   map (\(t,(p,whole)) -> ((p,t), whole)) $
+   map (\(t,(p,dottyp)) -> (dottyp, (p,t))) $
    AbsEventList.toPairList $
    AbsEventList.mapTime ((/timeStep) . realToFrac) $
    AbsEventList.mapMaybe
       (\fev -> do
          FileEvent.MIDIEvent ev <- Just fev
          (_c, (_v, p, True)) <- Query.noteExplicitOff ev
-         flip Map.lookup noteMap $
-            VoiceMsg.subtractPitch zeroKey p) $
+         let pz = VoiceMsg.subtractPitch zeroKey p
+         return $
+            case Map.lookup pz noteMap of
+               Just (n, s) -> (n, if s then Valid else Semitone)
+               Nothing ->
+                  let ( pmin, (nmin, _)) = Map.findMin noteMap
+                      (_pmax, (nmax, _)) = Map.findMax noteMap
+                  in  if pz < pmin
+                        then (nmin, TooLow)
+                        else (nmax, TooHigh)) $
    EventList.toAbsoluteEventList 0 $
    MidiFile.mergeTracks typ $
    map (MidiFile.secondsFromTicks division) tracks
@@ -156,17 +171,14 @@ diag :: TimeStep -> ZeroKey -> Input -> IO Diag
 diag timeStep (ZeroKey zeroKey) (Input path) = do
    midi <- Load.fromFile path
    let cloud = layoutDots timeStep (VoiceMsg.toPitch zeroKey) midi
-       (tooSmall, (fitting, tooBig)) =
-         mapSnd (partition ((<=numLong) . fst . fst)) $
-         partition ((<0) . fst . fst) cloud
-       semitones = filter (not . snd) fitting
-   when (not $ null semitones) $
-      hPrintf IO.stderr "Warning: %i semitones\n" $ length semitones
-   when (not $ null tooSmall) $
-      hPrintf IO.stderr "Warning: %i notes are too low\n" $ length tooSmall
-   when (not $ null tooBig) $
-      hPrintf IO.stderr "Warning: %i notes are too high\n" $ length tooBig
-   return $ dots fitting <> (grid $ ceiling $ maximum $ map (snd . fst) cloud)
+       sorted = Map.fromListWith (++) $ map (mapSnd (:[])) cloud
+       warning typ msg =
+         let n = length $ fold $ Map.lookup typ sorted
+         in  when (n > 0) $ hPrintf IO.stderr "Warning: %i %s\n" n msg
+   warning Semitone "semitones"
+   warning TooLow "notes are too low"
+   warning TooHigh "notes are too high"
+   return $ dots cloud <> (grid $ ceiling $ maximum $ map (snd . snd) cloud)
 
 main :: IO ()
 main = PS.mainWith diag
