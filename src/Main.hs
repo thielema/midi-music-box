@@ -159,6 +159,9 @@ diag timeStep (ZeroKey zeroKey) (Input path) = do
        (tooSmall, (fitting, tooBig)) =
          mapSnd (partition ((<=numLong) . fst . fst)) $
          partition ((<0) . fst . fst) cloud
+       semitones = filter (not . snd) fitting
+   when (not $ null semitones) $
+      hPrintf IO.stderr "Warning: %i semitones\n" $ length semitones
    when (not $ null tooSmall) $
       hPrintf IO.stderr "Warning: %i notes are too low\n" $ length tooSmall
    when (not $ null tooBig) $
