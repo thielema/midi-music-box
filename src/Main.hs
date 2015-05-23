@@ -38,7 +38,7 @@ globalScale = 1/7
 
 horsep, versep :: Double
 horsep = 40*globalScale
-versep = 60*globalScale
+versep = 80*globalScale
 
 hormargin, horextramargin :: Double
 hormargin = 65*globalScale
