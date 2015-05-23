@@ -101,14 +101,12 @@ dots poss =
             TooLow -> warning "!"
             TooHigh -> warning "!"
 
-noteMap :: Map Int (Int, Bool)
+noteMap :: Map Int (Bool, Int)
 noteMap =
    let o = True; x = False
        semitones = cycle [o,x,o,x,o,o,x,o,x,o,x,o]
-   in  Map.fromList $ take 25 $ zip [0..] $
-       zip
-          (NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones)
-          semitones
+   in  Map.fromList $ take 25 $ zip [0..] $ zip semitones $
+       NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones
 
 
 data DotType = Valid | Semitone | TooLow | TooHigh
@@ -117,7 +115,7 @@ data DotType = Valid | Semitone | TooLow | TooHigh
 layoutDots ::
    TimeStep -> VoiceMsg.Pitch -> MidiFile.T -> [(DotType, (Int, Double))]
 layoutDots (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
-   map (\(t,(p,dottyp)) -> (dottyp, (p,t))) $
+   map (\(t, (dottyp,p)) -> (dottyp, (p,t))) $
    AbsEventList.toPairList $
    AbsEventList.mapTime ((/timeStep) . realToFrac) $
    AbsEventList.mapMaybe
@@ -127,13 +125,13 @@ layoutDots (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
          let pz = VoiceMsg.subtractPitch zeroKey p
          return $
             case Map.lookup pz noteMap of
-               Just (n, s) -> (n, if s then Valid else Semitone)
+               Just (s, n) -> (if s then Valid else Semitone, n)
                Nothing ->
-                  let ( pmin, (nmin, _)) = Map.findMin noteMap
-                      (_pmax, (nmax, _)) = Map.findMax noteMap
+                  let ( pmin, (_, nmin)) = Map.findMin noteMap
+                      (_pmax, (_, nmax)) = Map.findMax noteMap
                   in  if pz < pmin
-                        then (nmin, TooLow)
-                        else (nmax, TooHigh)) $
+                        then (TooLow,  nmin)
+                        else (TooHigh, nmax)) $
    EventList.toAbsoluteEventList 0 $
    MidiFile.mergeTracks typ $
    map (MidiFile.secondsFromTicks division) tracks
