@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Main where
 
 import qualified Sound.MIDI.Message.Class.Query as Query
