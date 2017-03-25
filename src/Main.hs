@@ -24,6 +24,7 @@ import Control.Monad (when, )
 
 import qualified Data.Map as Map; import Data.Map (Map, )
 import qualified Data.NonEmpty as NonEmpty
+import qualified Data.Monoid as Mn
 import Data.Foldable (foldMap, fold, )
 import Data.Tuple.HT (mapSnd, )
 
@@ -142,9 +143,9 @@ newtype ZeroKey = ZeroKey Int
 instance Cmd.Parseable ZeroKey where
    parser =
       OP.option (ZeroKey <$> OP.auto)
-         (OP.long "zerokey" OP.<>
-          OP.metavar "INT" OP.<>
-          OP.value (ZeroKey 60) OP.<>
+         (OP.long "zerokey" Mn.<>
+          OP.metavar "INT" Mn.<>
+          OP.value (ZeroKey 60) Mn.<>
           OP.help "MIDI key for the lowest note line")
 
 
@@ -153,9 +154,9 @@ newtype TimeStep = TimeStep Double
 instance Cmd.Parseable TimeStep where
    parser =
       OP.option (TimeStep <$> OP.auto)
-         (OP.long "timestep" OP.<>
-          OP.metavar "SECONDS" OP.<>
-          OP.value (TimeStep 0.1) OP.<>
+         (OP.long "timestep" Mn.<>
+          OP.metavar "SECONDS" Mn.<>
+          OP.value (TimeStep 0.1) Mn.<>
           OP.help "time step between lines")
 
 
