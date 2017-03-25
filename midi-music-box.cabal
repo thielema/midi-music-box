@@ -1,5 +1,5 @@
 Name:                midi-music-box
-Version:             0.0.0.3
+Version:             0.0.0.4
 Synopsis:            Convert MIDI file to music box punch tape
 Description:
   Convert MIDI file to music box punch tape for this kind of music box:
@@ -58,7 +58,7 @@ Build-Type:          Simple
 Cabal-Version:       >=1.10
 
 Source-Repository this
-  Tag:         0.0.0.3
+  Tag:         0.0.0.4
   Type:        darcs
   Location:    http://hub.darcs.net/thielema/midi-music-box
 
