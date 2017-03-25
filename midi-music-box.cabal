@@ -50,7 +50,7 @@ License:             BSD3
 License-File:        LICENSE
 Author:              Henning Thielemann
 Maintainer:          haskell@henning-thielemann.de
-Category:            Sound
+Category:            Music, Sound
 Build-Type:          Simple
 Cabal-Version:       >=1.10
 
