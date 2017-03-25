@@ -45,6 +45,9 @@ Description:
   If the song is in key X major then lookup the MIDI note number for X
   and choose X plus or minus a multiple of 12 as zerokey.
   If the song has key Y minor, then X=Y+3.
+  .
+  You find executables for MS Windows in two ZIP archives there:
+  <http://code.haskell.org/~thielema/midi-music-box/>
 Homepage:            http://hub.darcs.net/thielema/midi-music-box
 License:             BSD3
 License-File:        LICENSE
