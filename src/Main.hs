@@ -12,7 +12,13 @@ import qualified Data.EventList.Relative.TimeBody as EventList
 
 import qualified Diagrams.Backend.Postscript.CmdLine as PS
 import qualified Diagrams.Backend.CmdLine as Cmd
-import Diagrams.Prelude
+import Diagrams.Prelude (Diagram)
+import Diagrams.Prelude (translateX, translateY, translate, r2, alignTL)
+import Diagrams.Prelude (hcat', vcat', with, sep)
+import Diagrams.Prelude (circle, rect, hrule, vrule)
+import Diagrams.Prelude (lwO, text, fontSizeL)
+import Diagrams.Prelude (fc, lc, yellow, blue, darkgreen, white, grey, black)
+import Diagrams.Prelude ((#), (&), (<$>), (<>), (.~))
 
 import qualified Options.Applicative as OP
 
