@@ -47,7 +47,10 @@ Description:
   If the song has key Y minor, then X=Y+3.
   .
   You find executables for MS Windows in two ZIP archives there:
-  <http://code.haskell.org/~thielema/midi-music-box/>
+  .
+  * <http://code.henning-thielemann.de/midi-music-box/midi-music-box.zip>
+  .
+  * <http://code.henning-thielemann.de/midi-music-box/midi-music-box-dll.zip>
 Homepage:            http://hub.darcs.net/thielema/midi-music-box
 License:             BSD3
 License-File:        LICENSE
