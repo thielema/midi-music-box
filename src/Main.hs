@@ -29,6 +29,7 @@ import Control.Monad (when, )
 
 import qualified Data.Map as Map; import Data.Map (Map, )
 import qualified Data.NonEmpty as NonEmpty
+import qualified Data.Monoid.HT as MnHT
 import qualified Data.Monoid as Mn
 import Data.Foldable (foldMap, fold, )
 import Data.Tuple.HT (mapSnd, )
@@ -80,32 +81,38 @@ across numIntervals =
       let len = horlen (numLong-1)
       in  map (# normalLW) [hrule len, hrule len # lc grey]
 
-grid :: Int -> Diag
-grid numIntervals =
-   alignTL (long numIntervals) <>
-   alignTL (across numIntervals) <>
+grid :: Cutter -> Int -> Diag
+grid (Cutter cutter) numIntervals =
+   MnHT.when (not cutter) (alignTL (long numIntervals)) <>
+   MnHT.when (not cutter) (alignTL (across numIntervals)) <>
    translateX (-hormargin)
       (alignTL (vrule (verlen numIntervals) # normalLW # lc grey)) <>
    translateX (horlen (numLong-1) + hormargin)
       (alignTL (vrule (verlen numIntervals) # normalLW # lc grey)) <>
-   translateY (0.5*versep) labels <>
+   MnHT.when (not cutter) (translateY (0.5*versep) labels) <>
    (translateX (-horextramargin) $ translateY (verlen 2) $ alignTL $ lc white $
     rect (horlen (numLong-1) + 2*horextramargin) (verlen (numIntervals+4)))
 
 
-dots :: [(DotType, (Int, Double))] -> Diag
-dots poss =
+dots :: Cutter -> [(DotType, (Int, Double))] -> Diag
+dots (Cutter cutter) poss =
    flip foldMap poss $
    \(typ, (x,y)) ->
       translate (r2 (horlen x, - versep * y)) $
       let warning txt =
             (fontSizeL horsep $ text txt) <>
             (lwO 0 $ fc yellow $ circle (horsep*0.4))
-      in  case typ of
-            Valid -> normalLW $ fc blue $ circle (horsep*0.25)
-            Semitone -> warning "#"
-            TooLow -> warning "!"
-            TooHigh -> warning "!"
+      in if cutter
+            then
+               case typ of
+                  Valid -> normalLW $ circle (horsep*0.25)
+                  _ -> Mn.mempty
+            else
+               case typ of
+                  Valid -> normalLW $ fc blue $ circle (horsep*0.25)
+                  Semitone -> warning "#"
+                  TooLow -> warning "!"
+                  TooHigh -> warning "!"
 
 noteMap :: Map Int (Bool, Int)
 noteMap =
@@ -164,14 +171,24 @@ instance Cmd.Parseable TimeStep where
           OP.help "time step between lines")
 
 
+newtype Cutter = Cutter Bool
+
+instance Cmd.Parseable Cutter where
+   parser =
+      Cutter <$>
+      OP.flag False True
+         (OP.long "cutter" Mn.<>
+          OP.help "stripped graphics ready for laser cutter")
+
+
 newtype Input = Input FilePath
 
 instance Cmd.Parseable Input where
    parser = OP.argument (Input <$> OP.str) (OP.metavar "INPUT")
 
 
-diag :: TimeStep -> ZeroKey -> Input -> IO Diag
-diag timeStep (ZeroKey zeroKey) (Input path) = do
+diag :: TimeStep -> ZeroKey -> Cutter -> Input -> IO Diag
+diag timeStep (ZeroKey zeroKey) cutter (Input path) = do
    midi <- Load.fromFile path
    let cloud = layoutDots timeStep (VoiceMsg.toPitch zeroKey) midi
        sorted = Map.fromListWith (++) $ map (mapSnd (:[])) cloud
@@ -181,7 +198,9 @@ diag timeStep (ZeroKey zeroKey) (Input path) = do
    warning Semitone "semitones"
    warning TooLow "notes are too low"
    warning TooHigh "notes are too high"
-   return $ dots cloud <> (grid $ ceiling $ maximum $ map (snd . snd) cloud)
+   return $
+      dots cutter cloud <>
+      (grid cutter $ ceiling $ maximum $ map (snd . snd) cloud)
 
 main :: IO ()
 main = PS.mainWith diag
