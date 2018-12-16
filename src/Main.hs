@@ -14,11 +14,11 @@ import qualified Diagrams.Backend.Postscript.CmdLine as PS
 import qualified Diagrams.Backend.CmdLine as Cmd
 import Diagrams.Prelude (Diagram)
 import Diagrams.Prelude (translateX, translateY, translate, r2, alignTL)
-import Diagrams.Prelude (hcat', vcat', with, sep)
+import Diagrams.Prelude (hsep, vsep)
 import Diagrams.Prelude (circle, rect, hrule, vrule)
 import Diagrams.Prelude (lwO, text, fontSizeL)
 import Diagrams.Prelude (fc, lc, yellow, blue, darkgreen, white, grey, black)
-import Diagrams.Prelude ((#), (&), (<$>), (<>), (.~))
+import Diagrams.Prelude ((#), (<$>), (<>))
 
 import qualified Options.Applicative as OP
 
@@ -62,13 +62,13 @@ thickLW = lwO (8*globalScale)
 
 labels :: Diag
 labels =
-   hcat' (with & sep .~ horsep) $
+   hsep horsep $
    map (\str -> text str # fontSizeL horsep) $
    map (:[]) "CDEFGABCDEFGABC"
 
 long :: Int -> Diag
 long numIntervals =
-   hcat' (with & sep .~ horsep) $
+   hsep horsep $
    map (\(wid, col) ->
           vrule (verlen numIntervals) # wid # lc col) $
       let l = (normalLW, black); h = (thickLW, darkgreen)
@@ -76,7 +76,7 @@ long numIntervals =
 
 across :: Int -> Diag
 across numIntervals =
-   vcat' (with & sep .~ versep) $
+   vsep versep $
    take (succ numIntervals) $ cycle $
       let len = horlen (numLong-1)
       in  map (# normalLW) [hrule len, hrule len # lc grey]
