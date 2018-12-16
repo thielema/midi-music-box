@@ -94,22 +94,23 @@ grid (Cutter cutter) numIntervals =
     rect (horlen (numLong-1) + 2*horextramargin) (verlen (numIntervals+4)))
 
 
-dots :: Cutter -> [(DotType, (Int, Double))] -> Diag
-dots (Cutter cutter) poss =
+dots :: Diameter -> Cutter -> [(DotType, (Int, Double))] -> Diag
+dots (Diameter diameterRel) (Cutter cutter) poss =
    flip foldMap poss $
    \(typ, (x,y)) ->
       translate (r2 (horlen x, - versep * y)) $
-      let warning txt =
+      let radius = horsep*diameterRel/2
+          warning txt =
             (fontSizeL horsep $ text txt) <>
             (lwO 0 $ fc yellow $ circle (horsep*0.4))
       in if cutter
             then
                case typ of
-                  Valid -> normalLW $ circle (horsep*0.25)
+                  Valid -> normalLW $ circle radius
                   _ -> Mn.mempty
             else
                case typ of
-                  Valid -> normalLW $ fc blue $ circle (horsep*0.25)
+                  Valid -> normalLW $ fc blue $ circle radius
                   Semitone -> warning "#"
                   TooLow -> warning "!"
                   TooHigh -> warning "!"
@@ -181,14 +182,25 @@ instance Cmd.Parseable Cutter where
           OP.help "stripped graphics ready for laser cutter")
 
 
+newtype Diameter = Diameter Double
+
+instance Cmd.Parseable Diameter where
+   parser =
+      OP.option (Diameter <$> OP.auto)
+         (OP.long "hole-diameter" Mn.<>
+          OP.metavar "RATIO" Mn.<>
+          OP.value (Diameter 0.5) Mn.<>
+          OP.help "size of a hole relative to line distance")
+
+
 newtype Input = Input FilePath
 
 instance Cmd.Parseable Input where
    parser = OP.argument (Input <$> OP.str) (OP.metavar "INPUT")
 
 
-diag :: TimeStep -> ZeroKey -> Cutter -> Input -> IO Diag
-diag timeStep (ZeroKey zeroKey) cutter (Input path) = do
+diag :: TimeStep -> ZeroKey -> Diameter -> Cutter -> Input -> IO Diag
+diag timeStep (ZeroKey zeroKey) diameter cutter (Input path) = do
    midi <- Load.fromFile path
    let cloud = layoutDots timeStep (VoiceMsg.toPitch zeroKey) midi
        sorted = Map.fromListWith (++) $ map (mapSnd (:[])) cloud
@@ -199,7 +211,7 @@ diag timeStep (ZeroKey zeroKey) cutter (Input path) = do
    warning TooLow "notes are too low"
    warning TooHigh "notes are too high"
    return $
-      dots cutter cloud <>
+      dots diameter cutter cloud <>
       (grid cutter $ ceiling $ maximum $ map (snd . snd) cloud)
 
 main :: IO ()
