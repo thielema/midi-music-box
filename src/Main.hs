@@ -4,7 +4,6 @@ module Main where
 import qualified Sound.MIDI.Message.Class.Query as Query
 
 import qualified Sound.MIDI.Message.Channel.Voice as VoiceMsg
-import qualified Sound.MIDI.File.Event as FileEvent
 import qualified Sound.MIDI.File.Load as Load
 import qualified Sound.MIDI.File as MidiFile
 
@@ -120,8 +119,7 @@ layoutDots (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
    AbsEventList.toPairList $
    AbsEventList.mapTime ((/timeStep) . realToFrac) $
    AbsEventList.mapMaybe
-      (\fev -> do
-         FileEvent.MIDIEvent ev <- Just fev
+      (\ev -> do
          (_c, (_v, p, True)) <- Query.noteExplicitOff ev
          let pz = VoiceMsg.subtractPitch zeroKey p
          return $
