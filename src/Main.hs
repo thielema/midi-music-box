@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
+import qualified Note
+
 import qualified Sound.MIDI.Message.Class.Query as Query
 
 import qualified Sound.MIDI.Message.Channel.Voice as VoiceMsg
@@ -23,12 +25,14 @@ import Diagrams.Prelude ((#), (<$>), (<>))
 import qualified Options.Applicative as OP
 
 import qualified System.IO as IO
-import Text.Printf (hPrintf, )
+import Text.Printf (hPrintf, printf)
 
 import Control.Monad (when, )
 
 import qualified Data.Map as Map; import Data.Map (Map, )
 import qualified Data.NonEmpty as NonEmpty
+import qualified Data.List.HT as ListHT
+import qualified Data.List as List
 import qualified Data.Monoid.HT as MnHT
 import qualified Data.Monoid as Mn
 import Data.Foldable (foldMap, fold, )
@@ -36,9 +40,6 @@ import Data.Tuple.HT (mapSnd, )
 
 
 type Diag = Diagram PS.B
-
-numLong :: Int
-numLong = 15
 
 globalScale :: Double
 globalScale = 1/7
@@ -60,36 +61,73 @@ normalLW = lwO (5*globalScale)
 thickLW = lwO (8*globalScale)
 
 
-labels :: Diag
-labels =
+data MusicScale =
+   MusicScale {
+      scaleLabels :: [Char],
+      greenLines :: [Char],
+      scaleNoteMap :: Map Int (Bool, Int)
+   }
+
+musicScale15, musicScale30 :: MusicScale
+musicScale15 =
+   MusicScale {
+      scaleLabels = "CDEFGABCDEFGABC",
+      greenLines  = "  | | | | |    ",
+      scaleNoteMap =
+         let o = True; x = False
+             semitones = cycle [o,x,o,x,o,o,x,o,x,o,x,o]
+         in  Map.fromList $ take 25 $ zip [0..] $ zip semitones $
+             NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones
+   }
+
+musicScale30 =
+   MusicScale {
+      scaleLabels = "CDGABCDEF#G#A#BC#D#EF#G#A#BCDE",
+      greenLines  = "       |  |   |  |  |         ",
+      scaleNoteMap =
+         let ps = Note.pitches30
+         in Map.fromList $ concat $
+            zipWith3
+               (\pos p k ->
+                  take k $ zip [p..] $ (True,pos) : repeat (False,pos))
+               [0..] ps (ListHT.mapAdjacent subtract ps ++ [1])
+   }
+
+
+labels :: [Char] -> Diag
+labels chars =
    hsep horsep $
    map (\str -> text str # fontSizeL horsep) $
-   map (:[]) "CDEFGABCDEFGABC"
+   map (:[]) chars
 
-long :: Int -> Diag
-long numIntervals =
+long :: [Char] -> Int -> Diag
+long greenLs numIntervals =
    hsep horsep $
    map (\(wid, col) ->
           vrule (verlen numIntervals) # wid # lc col) $
-      let l = (normalLW, black); h = (thickLW, darkgreen)
-      in  [l, l, h, l, h, l, h, l, h, l, h, l, l, l, l]
+   map (\c -> if c=='|' then (thickLW, darkgreen) else (normalLW, black))
+      greenLs
 
-across :: Int -> Diag
-across numIntervals =
+across :: Int -> Int -> Diag
+across numLong numIntervals =
    vsep versep $
    take (succ numIntervals) $ cycle $
       let len = horlen (numLong-1)
       in  map (# normalLW) [hrule len, hrule len # lc grey]
 
-grid :: Cutter -> Int -> Diag
-grid (Cutter cutter) numIntervals =
-   MnHT.when (not cutter) (alignTL (long numIntervals)) <>
-   MnHT.when (not cutter) (alignTL (across numIntervals)) <>
+grid :: MusicScale -> Cutter -> Int -> Diag
+grid musicScale (Cutter cutter) numIntervals =
+  let numLong = length $ scaleLabels musicScale
+  in
+   MnHT.when (not cutter)
+      (alignTL (long (greenLines musicScale) numIntervals)) <>
+   MnHT.when (not cutter) (alignTL (across numLong numIntervals)) <>
    translateX (-hormargin)
       (alignTL (vrule (verlen numIntervals) # normalLW # lc grey)) <>
    translateX (horlen (numLong-1) + hormargin)
       (alignTL (vrule (verlen numIntervals) # normalLW # lc grey)) <>
-   MnHT.when (not cutter) (translateY (0.5*versep) labels) <>
+   MnHT.when (not cutter)
+      (translateY (0.5*versep) $ labels $ scaleLabels musicScale) <>
    (translateX (-horextramargin) $ translateY (verlen 2) $ alignTL $ lc white $
     rect (horlen (numLong-1) + 2*horextramargin) (verlen (numIntervals+4)))
 
@@ -115,20 +153,15 @@ dots (Diameter diameterRel) (Cutter cutter) poss =
                   TooLow -> warning "!"
                   TooHigh -> warning "!"
 
-noteMap :: Map Int (Bool, Int)
-noteMap =
-   let o = True; x = False
-       semitones = cycle [o,x,o,x,o,o,x,o,x,o,x,o]
-   in  Map.fromList $ take 25 $ zip [0..] $ zip semitones $
-       NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones
-
 
 data DotType = Valid | Semitone | TooLow | TooHigh
    deriving (Eq, Ord)
 
 layoutDots ::
+   Map Int (Bool, Int) ->
    TimeStep -> VoiceMsg.Pitch -> MidiFile.T -> [(DotType, (Int, Double))]
-layoutDots (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
+layoutDots
+      noteMap (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
    map (\(t, (dottyp,p)) -> (dottyp, (p,t))) $
    AbsEventList.toPairList $
    AbsEventList.mapTime ((/timeStep) . realToFrac) $
@@ -148,6 +181,29 @@ layoutDots (TimeStep timeStep) zeroKey (MidiFile.Cons typ division tracks) =
    EventList.toAbsoluteEventList 0 $
    MidiFile.mergeTracks typ $
    map (MidiFile.secondsFromTicks division) tracks
+
+
+musicScaleMap :: Map String MusicScale
+musicScaleMap =
+   Map.fromList $
+      ("major15", musicScale15) :
+      ("mixed30", musicScale30) :
+      []
+
+instance Cmd.Parseable MusicScale where
+   parser =
+      OP.option
+         (OP.eitherReader $ \str ->
+            maybe
+               (Left $
+                printf "unknown name '%s', must be one of %s" str
+                  (List.intercalate ", " $ Map.keys musicScaleMap))
+               Right $
+            Map.lookup str musicScaleMap)
+         (OP.long "music-scale" Mn.<>
+          OP.metavar "NAME" Mn.<>
+          OP.value musicScale15 Mn.<>
+          OP.help "Type of music box")
 
 
 newtype ZeroKey = ZeroKey Int
@@ -199,10 +255,13 @@ instance Cmd.Parseable Input where
    parser = OP.argument (Input <$> OP.str) (OP.metavar "INPUT")
 
 
-diag :: TimeStep -> ZeroKey -> Diameter -> Cutter -> Input -> IO Diag
-diag timeStep (ZeroKey zeroKey) diameter cutter (Input path) = do
+diag ::
+   MusicScale -> TimeStep -> ZeroKey -> Diameter -> Cutter -> Input -> IO Diag
+diag musicScale timeStep (ZeroKey zeroKey) diameter cutter (Input path) = do
    midi <- Load.fromFile path
-   let cloud = layoutDots timeStep (VoiceMsg.toPitch zeroKey) midi
+   let cloud =
+         layoutDots (scaleNoteMap musicScale)
+            timeStep (VoiceMsg.toPitch zeroKey) midi
        sorted = Map.fromListWith (++) $ map (mapSnd (:[])) cloud
        warning typ msg =
          let n = length $ fold $ Map.lookup typ sorted
@@ -212,7 +271,7 @@ diag timeStep (ZeroKey zeroKey) diameter cutter (Input path) = do
    warning TooHigh "notes are too high"
    return $
       dots diameter cutter cloud <>
-      (grid cutter $ ceiling $ maximum $ map (snd . snd) cloud)
+      (grid musicScale cutter $ ceiling $ maximum $ map (snd . snd) cloud)
 
 main :: IO ()
 main = PS.mainWith diag
