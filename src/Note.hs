@@ -1,22 +1,22 @@
 module Note where
 
-pitch :: Int -> Int -> Int
-pitch nt oct = nt+oct*12
+pitch :: Char -> Int -> Int -> (Char, Int)
+pitch char nt oct = (char, nt+oct*12)
 
-c,d,e,f,g,a,b :: Int -> Int
-c = pitch  0
-d = pitch  2
-e = pitch  4
-f = pitch  5
-g = pitch  7
-a = pitch  9
-b = pitch 11
+c,d,e,f,g,a,b :: Int -> (Char, Int)
+c = pitch 'C'  0
+d = pitch 'D'  2
+e = pitch 'E'  4
+f = pitch 'F'  5
+g = pitch 'G'  7
+a = pitch 'A'  9
+b = pitch 'B' 11
 
-(#) :: (a -> Int) -> a -> Int
-noteFunc # oct = noteFunc oct + 1
+(#) :: (a -> (Char, Int)) -> a -> (Char, Int)
+noteFunc # oct = ('#', succ $ snd $ noteFunc oct)
 
 
-pitches30 :: [Int]
+pitches30 :: [(Char, Int)]
 pitches30 =
    c 0 : d 0 : g 0 : a 0 : b 0 :
    c 1 : d 1 : e 1 : f 1 : f#1 : g 1 : g#1 : a 1 : a#1 : b 1 :

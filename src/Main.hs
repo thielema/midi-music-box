@@ -82,10 +82,10 @@ musicScale15 =
 
 musicScale30 =
    MusicScale {
-      scaleLabels = "CDGABCDEF#G#A#BC#D#EF#G#A#BCDE",
+      scaleLabels = map fst Note.pitches30,
       greenLines  = "       |  |   |  |  |         ",
       scaleNoteMap =
-         let ps = Note.pitches30
+         let ps = map snd Note.pitches30
          in Map.fromList $ concat $
             zipWith3
                (\pos p k ->
