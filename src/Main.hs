@@ -64,7 +64,7 @@ thickLW = lwO (8*globalScale)
 data MusicScale =
    MusicScale {
       scaleLabels :: [Char],
-      greenLines :: [Char],
+      greenLines :: [Bool],
       scaleNoteMap :: Map Int (Bool, Int)
    }
 
@@ -72,7 +72,7 @@ musicScale15, musicScale30 :: MusicScale
 musicScale15 =
    MusicScale {
       scaleLabels = "CDEFGABCDEFGABC",
-      greenLines  = "  | | | | |    ",
+      greenLines = map ('|'==) $ "  | | | | |    ",
       scaleNoteMap =
          let o = True; x = False
              semitones = cycle [o,x,o,x,o,o,x,o,x,o,x,o]
@@ -82,10 +82,10 @@ musicScale15 =
 
 musicScale30 =
    MusicScale {
-      scaleLabels = map fst Note.pitches30,
-      greenLines  = "       |  |   |  |  |         ",
+      scaleLabels = map (fst.snd) Note.pitches30,
+      greenLines = map fst Note.pitches30,
       scaleNoteMap =
-         let ps = map snd Note.pitches30
+         let ps = map (snd.snd) Note.pitches30
          in Map.fromList $ concat $
             zipWith3
                (\pos p k ->
@@ -97,12 +97,13 @@ musicScale30 =
 labels :: [Char] -> Diag
 labels = hsep horsep . map (\char -> text [char] # fontSizeL horsep)
 
-long :: [Char] -> Int -> Diag
+long :: [Bool] -> Int -> Diag
 long greenLs numIntervals =
    hsep horsep $
    map (\(wid, col) ->
           vrule (verlen numIntervals) # wid # lc col) $
-   map (\c -> if c=='|' then (thickLW, darkgreen) else (normalLW, black))
+   map
+      (\isGreen -> if isGreen then (thickLW, darkgreen) else (normalLW, black))
       greenLs
 
 across :: Int -> Int -> Diag
