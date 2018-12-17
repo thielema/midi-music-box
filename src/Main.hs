@@ -47,10 +47,6 @@ horsep, versep :: Double
 horsep = 40*globalScale
 versep = 80*globalScale
 
-hormargin, horextramargin :: Double
-hormargin = 65*globalScale
-horextramargin = 100*globalScale
-
 horlen, verlen :: Int -> Double
 horlen n = fromIntegral n * horsep
 verlen n = fromIntegral n * versep
@@ -64,17 +60,22 @@ data MusicScale =
    MusicScale {
       scaleLabels :: [Char],
       greenLines :: [Bool],
-      scaleNoteMap :: Map Int (Bool, Int)
+      scaleNoteMap :: Map Int (Bool, Int),
+      horizontalMargin, horizontalExtraMargin :: Double
    }
 
 musicScale15, musicScale30 :: MusicScale
-musicScale15 = musicScaleFromNotes Note.pitches15
-musicScale30 = musicScaleFromNotes Note.pitches30
+musicScale15 =
+   musicScaleFromNotes Note.pitches15 (65*globalScale, 100*globalScale)
+musicScale30 =
+   musicScaleFromNotes Note.pitches30 (3*horsep, 5*horsep)
 
-musicScaleFromNotes :: [(Bool, (Char, Int))] -> MusicScale
-musicScaleFromNotes notes =
+musicScaleFromNotes :: [(Bool, (Char, Int))] -> (Double,Double) -> MusicScale
+musicScaleFromNotes notes (hormargin, horextramargin) =
    let (greenLines_, (scaleLabels_,ps)) = mapSnd unzip $ unzip notes
    in MusicScale {
+         horizontalMargin = hormargin,
+         horizontalExtraMargin = horextramargin,
          scaleLabels = scaleLabels_,
          greenLines = greenLines_,
          scaleNoteMap =
@@ -108,6 +109,8 @@ across numLong numIntervals =
 grid :: MusicScale -> Cutter -> Int -> Diag
 grid musicScale (Cutter cutter) numIntervals =
   let numLong = length $ scaleLabels musicScale
+      hormargin = horizontalMargin musicScale
+      horextramargin = horizontalExtraMargin musicScale
   in
    MnHT.when (not cutter)
       (alignTL (long (greenLines musicScale) numIntervals)) <>
