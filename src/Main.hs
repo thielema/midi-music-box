@@ -30,7 +30,6 @@ import Text.Printf (hPrintf, printf)
 import Control.Monad (when, )
 
 import qualified Data.Map as Map; import Data.Map (Map, )
-import qualified Data.NonEmpty as NonEmpty
 import qualified Data.List.HT as ListHT
 import qualified Data.List as List
 import qualified Data.Monoid.HT as MnHT
@@ -69,23 +68,16 @@ data MusicScale =
    }
 
 musicScale15, musicScale30 :: MusicScale
-musicScale15 =
-   MusicScale {
-      scaleLabels = "CDEFGABCDEFGABC",
-      greenLines = map ('|'==) $ "  | | | | |    ",
-      scaleNoteMap =
-         let o = True; x = False
-             semitones = cycle [o,x,o,x,o,o,x,o,x,o,x,o]
-         in  Map.fromList $ take 25 $ zip [0..] $ zip semitones $
-             NonEmpty.tail $ NonEmpty.scanl (+) (-1) $ map fromEnum semitones
-   }
+musicScale15 = musicScaleFromNotes Note.pitches15
+musicScale30 = musicScaleFromNotes Note.pitches30
 
-musicScale30 =
+musicScaleFromNotes :: [(Bool, (Char, Int))] -> MusicScale
+musicScaleFromNotes notes =
    MusicScale {
-      scaleLabels = map (fst.snd) Note.pitches30,
-      greenLines = map fst Note.pitches30,
+      scaleLabels = map (fst.snd) notes,
+      greenLines = map fst notes,
       scaleNoteMap =
-         let ps = map (snd.snd) Note.pitches30
+         let ps = map (snd.snd) notes
          in Map.fromList $ concat $
             zipWith3
                (\pos p k ->

@@ -23,7 +23,12 @@ x .: xs  = (False,x) : xs
 x |: xs  = (True, x) : xs
 
 
-pitches30 :: [(Bool, (Char, Int))]
+pitches15, pitches30 :: [(Bool, (Char, Int))]
+pitches15 =
+   c 0 .: d 0 .: e 0 |: f 0 .: g 0 |: a 0 .: b 0 |:
+   c 1 .: d 1 |: e 1 .: f 1 |: g 1 .: a 1 .: b 1 .:
+   c 2 .: []
+
 pitches30 =
    c 0 .: d 0 .: g 0 .: a 0 .: b 0 .:
    c 1 .: d 1 .: e 1 |:
