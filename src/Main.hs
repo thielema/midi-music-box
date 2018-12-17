@@ -95,10 +95,7 @@ musicScale30 =
 
 
 labels :: [Char] -> Diag
-labels chars =
-   hsep horsep $
-   map (\str -> text str # fontSizeL horsep) $
-   map (:[]) chars
+labels = hsep horsep . map (\char -> text [char] # fontSizeL horsep)
 
 long :: [Char] -> Int -> Diag
 long greenLs numIntervals =
