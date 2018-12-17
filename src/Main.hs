@@ -73,17 +73,17 @@ musicScale30 = musicScaleFromNotes Note.pitches30
 
 musicScaleFromNotes :: [(Bool, (Char, Int))] -> MusicScale
 musicScaleFromNotes notes =
-   MusicScale {
-      scaleLabels = map (fst.snd) notes,
-      greenLines = map fst notes,
-      scaleNoteMap =
-         let ps = map (snd.snd) notes
-         in Map.fromList $ concat $
+   let (greenLines_, (scaleLabels_,ps)) = mapSnd unzip $ unzip notes
+   in MusicScale {
+         scaleLabels = scaleLabels_,
+         greenLines = greenLines_,
+         scaleNoteMap =
+            Map.fromList $ concat $
             zipWith3
                (\pos p k ->
                   take k $ zip [p..] $ (True,pos) : repeat (False,pos))
                [0..] ps (ListHT.mapAdjacent subtract ps ++ [1])
-   }
+      }
 
 
 labels :: [Char] -> Diag
